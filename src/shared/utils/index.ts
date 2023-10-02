@@ -1,0 +1,5 @@
+export * from './getFunWords'
+export * from './filterPhrases'
+export * from './trimFirstCharacters'
+export * from './generateRandomSentence'
+export * from './getHearRegExp'

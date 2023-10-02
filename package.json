@@ -1,0 +1,26 @@
+{
+  "name": "vk-bot",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": ".",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/uuid": "9.0.4",
+    "@vk-io/hear": "1.1.1",
+    "axios": "1.5.0",
+    "dayjs": "1.11.10",
+    "dotenv": "16.3.1",
+    "json-server": "0.17.4",
+    "uuid": "9.0.1",
+    "vk-io": "4.8.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.5.6",
+    "typescript": "5"
+  }
+}
