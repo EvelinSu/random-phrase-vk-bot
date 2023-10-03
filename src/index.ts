@@ -10,7 +10,7 @@ require('dotenv').config();
 const token = process.env.VK_API_KEY as string;
 const vk = new VK({ token });
 const hearManager = new HearManager<MessageContext>();
-const VkBot = new VkBotController()
+const VkBot = new VkBotController();
 
 hearManager.hear(commands.getCommands, async (ctx) => {
   await VkBot.sendMessage(ctx, commandsText);
@@ -71,14 +71,23 @@ hearManager.hear(commands.update, async (ctx) => {
   await VkBot.sendMessage(ctx, textContent.updateMessage);
 });
 
-hearManager.hear(/.*/g, async (ctx) => {
-  VkBot.sendMessagePeriodically(ctx);
+hearManager.hear(new RegExp(commands.setMessagesToTrigger), async (ctx) => {
+  const text = ctx.text;
+  if (text) {
+    await VkBot.setMessagesToTrigger(ctx, text);
+  } else {
+    await VkBot.sendMessage(ctx, textContent.commonErrorMessage);
+  }
+});
+
+hearManager.hear(/.*/, async (ctx) => {
+  await VkBot.sendMessagePeriodically(ctx);
 });
 
 (async () => {
   await vk.updates.start();
   vk.updates.on('message_new', hearManager.middleware);
-  VkBot.uploadPhrases();
-  VkBot.uploadData();
+  await VkBot.uploadPhrases();
+  await VkBot.uploadData();
   console.log('Бот запущен и готов к работе!');
 })();

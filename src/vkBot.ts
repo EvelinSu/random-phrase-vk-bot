@@ -12,7 +12,7 @@ import {
 } from './shared/utils';
 
 export class VkBotController {
-  messagesToTrigger: number = 20;
+  messagesToTrigger: number = 4;
   messagesCounter: number = 0;
   phrasesList: PhraseType[] = [];
   nouns: string[] = [];
@@ -38,7 +38,19 @@ export class VkBotController {
     }
   };
 
-  async addPhrase (context: MessageContext, text: string) {
+  async setMessagesToTrigger(context: MessageContext, text: string) {
+    const messageText = trimFirstCharacters(text, commands.setMessagesToTrigger.length, false);
+    const count = Number(messageText);
+
+    if (count < 1000 && count > 0) {
+      this.messagesToTrigger = count;
+      await this.sendMessage(context, textContent.updateMessage);
+    } else {
+      await this.sendMessage(context, textContent.commonErrorMessage);
+    }
+  };
+
+  async addPhrase(context: MessageContext, text: string) {
     const messageText = trimFirstCharacters(text, commands.addPhrase.length, false);
     const maxMessageTextLength = 500;
     const currentMessageLength = messageText.length;
@@ -56,7 +68,7 @@ export class VkBotController {
 
       await phrasesApi.addPhrase(messageText);
       await this.sendMessage(context, textContent.commonSaveMessage);
-      await this.uploadPhrases()
+      await this.uploadPhrases();
 
     } catch (err) {
       console.log(textContent.addPhraseError, err);
@@ -92,16 +104,16 @@ export class VkBotController {
     }
   };
 
-  sendMessagePeriodically(context: MessageContext) {
+  async sendMessagePeriodically(context: MessageContext) {
     if (this.messagesCounter < this.messagesToTrigger) {
       this.messagesCounter++;
     } else {
       this.messagesCounter = 0;
-      this.sendRandomPhrase(context);
+      await this.sendGeneratedRandomSentence(context);
     }
   };
 
-  async generateFunWords (context: MessageContext, text: string) {
+  async generateFunWords(context: MessageContext, text: string) {
     const commandLength = commands.getRandomWords.length;
     let nickname = trimFirstCharacters(text, commandLength, false);
 
@@ -113,11 +125,11 @@ export class VkBotController {
     await this.sendMessage(context, `${nickname} ${result}`);
   };
 
-  async sendDailyRank (context: MessageContext, rank: string) {
+  async sendDailyRank(context: MessageContext, rank: string) {
     await this.sendMessage(context, `Сегодня ты ${rank}`);
   };
 
-  async uploadData () {
+  async uploadData() {
     try {
       this.adjectives = await phrasesApi.getAdjectives();
       this.nouns = await phrasesApi.getNouns();
@@ -127,7 +139,7 @@ export class VkBotController {
     }
   };
 
-  async generateDailyPersonalRank (context: MessageContext) {
+  async generateDailyPersonalRank(context: MessageContext) {
     const today = dayjs().add(3, 'hour').format('DD.MM.YYYY');
     const userId = context.senderId;
     const currentUser = this.dailyPersonalRank.find((el) => el.userId === userId);

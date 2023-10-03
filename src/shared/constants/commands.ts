@@ -4,6 +4,7 @@ export const commands = {
   getPhrase: '/ц',
   getTodayRank: '/сегодня я',
   getRandomSentence: '/вари',
+  setMessagesToTrigger: '/частота',
 
   getCommands: '/команды',
   getApologize: '/извинись',
