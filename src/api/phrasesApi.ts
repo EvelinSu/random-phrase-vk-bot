@@ -7,6 +7,10 @@ const api = axios.create({
 });
 
 export const phrasesApi = {
+  getPredictions: async () => {
+    const res: AxiosResponse<string[]> = await api.get('predictions');
+    return res.data;
+  },
   getPhrases: async () => {
     const res: AxiosResponse<PhraseType[]> = await api.get('phrases');
     return res.data;

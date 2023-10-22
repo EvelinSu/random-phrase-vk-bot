@@ -10,14 +10,17 @@ import {
   generateRandomSentence,
   trimFirstCharacters,
 } from './shared/utils';
+import { getRandomPrediction } from './shared/utils/getRandomPrediction';
 
 export class VkBotController {
   messagesToTrigger: number = 4;
   messagesCounter: number = 0;
   phrasesList: PhraseType[] = [];
   nouns: string[] = [];
+  predictions: string[] = [];
   adjectives: string[] = [];
   dailyPersonalRank: DailyPersonalRankType[] = [];
+  timerId: NodeJS.Timeout | undefined;
 
   async uploadPhrases () {
     try {
@@ -29,9 +32,13 @@ export class VkBotController {
 
   async sendMessage (context: MessageContext, message: string) {
     try {
-      if (message) {
+      if (message && !this.timerId) {
         this.messagesCounter++;
         await context.send(message);
+
+        this.timerId = setTimeout(() => {
+          this.timerId = undefined;
+        }, 1000);
       }
     } catch (err) {
       console.log(textContent.sendMessageError, err);
@@ -129,10 +136,16 @@ export class VkBotController {
     await this.sendMessage(context, `Сегодня ты ${rank}`);
   };
 
+  async sendPrediction(context: MessageContext) {
+    const prediction = getRandomPrediction(this.predictions);
+    await this.sendMessage(context, prediction);
+  };
+
   async uploadData() {
     try {
       this.adjectives = await phrasesApi.getAdjectives();
       this.nouns = await phrasesApi.getNouns();
+      this.predictions = await phrasesApi.getPredictions();
       this.dailyPersonalRank = await phrasesApi.getDailyPersonalRank();
     } catch (err) {
       console.log('Ошибка загрузки данных', err);

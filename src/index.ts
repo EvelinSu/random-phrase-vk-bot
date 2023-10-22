@@ -24,6 +24,10 @@ hearManager.hear(commands.getTodayRank, async (ctx) => {
   await VkBot.generateDailyPersonalRank(ctx);
 });
 
+hearManager.hear(getHearRegExp(commands.getPrediction), async (ctx) => {
+  await VkBot.sendPrediction(ctx);
+});
+
 hearManager.hear(getHearRegExp(commands.getPhrase), async (ctx) => {
   const text = ctx.text;
 
@@ -78,10 +82,6 @@ hearManager.hear(new RegExp(commands.setMessagesToTrigger), async (ctx) => {
   } else {
     await VkBot.sendMessage(ctx, textContent.commonErrorMessage);
   }
-});
-
-hearManager.hear(/.*/, async (ctx) => {
-  await VkBot.sendMessagePeriodically(ctx);
 });
 
 (async () => {
