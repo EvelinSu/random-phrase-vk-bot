@@ -9,3 +9,9 @@ export type DailyPersonalRankType = {
   words: string,
   id?: string,
 }
+
+export type YesNoResponseType = {
+  answer: "yes" | "no" | "maybe",
+  forced: boolean,
+  image: string,
+}

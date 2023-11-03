@@ -137,6 +137,20 @@ export class VkBotController {
   };
 
   async sendPrediction(context: MessageContext) {
+    const commandLength = commands.getPrediction.length;
+    const randomBoolean = Math.random() < 0.5
+
+    if (context.text && context.text.trim().length <= commandLength) {
+      await this.sendMessage(context, "a?");
+      return;
+    }
+
+    if (randomBoolean) {
+      const yesNoData = await phrasesApi.getYesNo();
+      await context.sendDocuments({value: yesNoData.image});
+      return;
+    }
+
     const prediction = getRandomPrediction(this.predictions);
     await this.sendMessage(context, prediction);
   };

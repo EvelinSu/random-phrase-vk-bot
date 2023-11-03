@@ -1,9 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
 import { v1 } from 'uuid';
-import { DailyPersonalRankType, PhraseType } from '../shared/types';
+import { DailyPersonalRankType, PhraseType, YesNoResponseType } from '../shared/types';
 
 const api = axios.create({
   baseURL: 'http://localhost:3000/',
+});
+const yesNoApi = axios.create({
+  baseURL: 'https://yesno.wtf/api/',
 });
 
 export const phrasesApi = {
@@ -33,6 +36,10 @@ export const phrasesApi = {
   },
   addDailyPersonalRank: async (body: DailyPersonalRankType) => {
     const res: AxiosResponse<DailyPersonalRankType> = await api.post('dailyPersonalRank', {id: v1(), ...body});
+    return res.data;
+  },
+  getYesNo: async () => {
+    const res: AxiosResponse<YesNoResponseType> = await yesNoApi.get('/');
     return res.data;
   },
   updateDailyPersonalRank: async (body: DailyPersonalRankType) => {
