@@ -84,6 +84,18 @@ hearManager.hear(new RegExp(commands.setMessagesToTrigger), async (ctx) => {
   }
 });
 
+hearManager.hear(commands.toggleSteamNotifications, async (ctx) => {
+  await VkBot.toggleSteamNotifications(ctx);
+});
+
+hearManager.hear(getHearRegExp(commands.addPlayer), async (ctx) => {
+  await VkBot.addPlayer(ctx);
+});
+
+hearManager.hear(commands.getOnlinePlayers, async (ctx) => {
+  await VkBot.getOnlinePlayers(ctx);
+});
+
 (async () => {
   await vk.updates.start();
   vk.updates.on('message_new', hearManager.middleware);

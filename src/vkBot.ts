@@ -1,15 +1,18 @@
 import * as dayjs from 'dayjs';
+import { clearInterval } from 'timers';
 import { MessageContext } from 'vk-io';
-import { phrasesApi } from './api/phrasesApi';
+import { coreApi } from './api/coreApi';
+import { steamApi } from './api/steamApi';
 import { commands } from './shared/constants/commands';
 import { textContent } from './shared/constants/textContent';
-import { DailyPersonalRankType, PhraseType } from './shared/types';
+import { DailyPersonalRankType, PhraseType, PlayerType } from './shared/types';
 import {
   filterPhrases,
   getFunWords,
   generateRandomSentence,
   trimFirstCharacters,
 } from './shared/utils';
+import { getPlayerOnlineText } from './shared/utils/getPlayerOnlineText';
 import { getRandomPrediction } from './shared/utils/getRandomPrediction';
 
 export class VkBotController {
@@ -17,20 +20,23 @@ export class VkBotController {
   messagesCounter: number = 0;
   phrasesList: PhraseType[] = [];
   nouns: string[] = [];
+  chatIds: MessageContext['chatId'][] = [];
   predictions: string[] = [];
   adjectives: string[] = [];
+  players: PlayerType[] = [];
   dailyPersonalRank: DailyPersonalRankType[] = [];
+  steamIntervalId: NodeJS.Timeout | undefined;
   timerId: NodeJS.Timeout | undefined;
 
-  async uploadPhrases () {
+  async uploadPhrases() {
     try {
-      this.phrasesList = await phrasesApi.getPhrases();
+      this.phrasesList = await coreApi.getPhrases();
     } catch (err) {
       console.log('Ошибка загрузки цитат', err);
     }
   };
 
-  async sendMessage (context: MessageContext, message: string) {
+  async sendMessage(context: MessageContext, message: string) {
     try {
       if (message && !this.timerId) {
         this.messagesCounter++;
@@ -73,7 +79,7 @@ export class VkBotController {
         return;
       }
 
-      await phrasesApi.addPhrase(messageText);
+      await coreApi.addPhrase(messageText);
       await this.sendMessage(context, textContent.commonSaveMessage);
       await this.uploadPhrases();
 
@@ -82,7 +88,7 @@ export class VkBotController {
     }
   };
 
-  async sendRandomPhrase (context: MessageContext, array?: PhraseType[]) {
+  async sendRandomPhrase(context: MessageContext, array?: PhraseType[]) {
     const data = array || this.phrasesList;
     const randomPhrase = data[Math.floor(Math.random() * data.length)].text;
 
@@ -94,7 +100,7 @@ export class VkBotController {
     await this.sendMessage(context, generateRandomSentence(this.phrasesList));
   };
 
-  async findAndSendPhrase (context: MessageContext, text: string) {
+  async findAndSendPhrase(context: MessageContext, text: string) {
     const commandLength = commands.getPhrase.length;
     const messageText = trimFirstCharacters(text, commandLength);
     const phrases = filterPhrases(messageText, this.phrasesList);
@@ -138,16 +144,16 @@ export class VkBotController {
 
   async sendPrediction(context: MessageContext) {
     const commandLength = commands.getPrediction.length;
-    const randomBoolean = Math.random() < 0.5
+    const randomBoolean = Math.random() < 0.5;
 
     if (context.text && context.text.trim().length <= commandLength) {
-      await this.sendMessage(context, "a?");
+      await this.sendMessage(context, 'a?');
       return;
     }
 
     if (randomBoolean) {
-      const yesNoData = await phrasesApi.getYesNo();
-      await context.sendDocuments({value: yesNoData.image});
+      const yesNoData = await coreApi.getYesNo();
+      await context.sendDocuments({ value: yesNoData.image });
       return;
     }
 
@@ -157,12 +163,21 @@ export class VkBotController {
 
   async uploadData() {
     try {
-      this.adjectives = await phrasesApi.getAdjectives();
-      this.nouns = await phrasesApi.getNouns();
-      this.predictions = await phrasesApi.getPredictions();
-      this.dailyPersonalRank = await phrasesApi.getDailyPersonalRank();
+      this.adjectives = await coreApi.getAdjectives();
+      this.nouns = await coreApi.getNouns();
+      this.players = await steamApi.getPlayers();
+      this.predictions = await coreApi.getPredictions();
+      this.dailyPersonalRank = await coreApi.getDailyPersonalRank();
     } catch (err) {
       console.log('Ошибка загрузки данных', err);
+    }
+  };
+
+  async uploadPlayers() {
+    try {
+      this.players = await steamApi.getPlayers();
+    } catch (err) {
+      console.log('Ошибка загрузки юзеров', err);
     }
   };
 
@@ -179,16 +194,82 @@ export class VkBotController {
 
     if (currentUser && currentUser.day !== today) {
       // если юзер с рангом найден, но ранг просрочен
-      await phrasesApi.updateDailyPersonalRank({ ...currentUser, day: today, words: rank });
+      await coreApi.updateDailyPersonalRank({ ...currentUser, day: today, words: rank });
       await this.sendDailyRank(context, rank);
     }
 
     if (!currentUser) {
       // если юзер не найден
-      await phrasesApi.addDailyPersonalRank({ words: rank, userId, day: today });
+      await coreApi.addDailyPersonalRank({ words: rank, userId, day: today });
       await this.sendDailyRank(context, rank);
     }
 
     await this.uploadData();
   };
+
+  async checkPlayersStatus(ctx: MessageContext) {
+    try {
+      const playersId = this.players.map((player) => player.steamid);
+      const actualPlayersStatus = await steamApi.checkPlayersStatus(playersId, this.players);
+
+      for (let i = 0; i < actualPlayersStatus.length; i++) {
+        const player = await actualPlayersStatus[i];
+
+        if (player && !player?.isNotificationSent) {
+          await steamApi.putPlayer({ ...player, isNotificationSent: true });
+          await this.sendMessage(ctx, getPlayerOnlineText(player));
+        }
+      }
+      await this.uploadPlayers();
+    } catch (err) {
+      console.log(err)
+    }
+  };
+
+  async toggleSteamNotifications(ctx: MessageContext) {
+    try {
+      if (this.chatIds.includes(ctx.chatId)) {
+        this.chatIds = this.chatIds.filter(el => el !== ctx.chatId);
+        clearInterval(this.steamIntervalId);
+        await this.sendMessage(ctx, 'Уведомления отключены');
+        return;
+      }
+
+      this.chatIds.push(ctx.chatId);
+      await this.sendMessage(ctx, 'Уведомления включены');
+      this.steamIntervalId = setInterval(() => {
+        this.checkPlayersStatus(ctx);
+      }, 30000);
+    } catch (err) {
+      console.log(err)
+    }
+  };
+
+  async addPlayer(ctx: MessageContext) {
+    const commandLength = commands.addPlayer.length;
+
+    if (ctx.text) {
+      const messageText = trimFirstCharacters(ctx.text, commandLength).split(' ');
+      const name = messageText[0];
+      const steamid = messageText[1];
+      await steamApi.addPlayer({ name, steamid });
+      await this.uploadPlayers();
+      await this.sendMessage(ctx, 'Игрок добавлен');
+    }
+  };
+
+  async getOnlinePlayers(ctx: MessageContext) {
+    const onlinePlayers: string[] = [];
+    this.players.forEach((el) => {
+      if (el.isPlayNow) {
+        onlinePlayers.push(el.name);
+      }
+    });
+
+    if (!onlinePlayers.length) {
+      await this.sendMessage(ctx, 'Никого нет онлайн......');
+    }
+
+    await this.sendMessage(ctx, `Сейчас в игре: ${onlinePlayers.join(', ')}`);
+  }
 }

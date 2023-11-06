@@ -1,4 +1,13 @@
 {
+  "steam-players": [
+    {
+      "id": "1",
+      "name": "Example",
+      "steamid": "11111111111111111",
+      "isPlayNow": false,
+      "isNotificationSent": false
+    }
+  ],
   "phrases": [
     {
       "id": "1",
