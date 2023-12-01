@@ -15,6 +15,10 @@ export const steamApi = {
     const res: AxiosResponse<string[]> = await jsonApi.post('/steam-players', body);
     return res.data;
   },
+  removePlayer: async (id: PlayerType['id']) => {
+    const res: AxiosResponse<string[]> = await jsonApi.delete(`/steam-players/${id}`);
+    return res.data;
+  },
   putPlayer: async (arg: Partial<PlayerType>) => {
     const res: AxiosResponse<PlayerType> = await jsonApi.put(`/steam-players/${arg.id}`, arg);
     return res.data;

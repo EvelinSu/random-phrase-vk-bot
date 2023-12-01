@@ -222,7 +222,7 @@ export class VkBotController {
       }
       await this.uploadPlayers();
     } catch (err) {
-      console.log(err)
+      console.log(err);
     }
   };
 
@@ -241,20 +241,58 @@ export class VkBotController {
         this.checkPlayersStatus(ctx);
       }, 30000);
     } catch (err) {
-      console.log(err)
+      console.log(err);
     }
   };
 
   async addPlayer(ctx: MessageContext) {
-    const commandLength = commands.addPlayer.length;
+    try {
+      const commandLength = commands.addPlayer.length;
 
-    if (ctx.text) {
-      const messageText = trimFirstCharacters(ctx.text, commandLength).split(' ');
-      const name = messageText[0];
-      const steamid = messageText[1];
-      await steamApi.addPlayer({ name, steamid });
-      await this.uploadPlayers();
-      await this.sendMessage(ctx, 'Игрок добавлен');
+      if (ctx.text) {
+        const messageText = trimFirstCharacters(ctx.text, commandLength).split(' ');
+        const name = messageText[0];
+        const steamid = messageText[1];
+        const isAlreadyExist = this.players.find(el => el.name === name);
+
+        if (isAlreadyExist) {
+          await this.sendMessage(ctx, `Игрок ${name} уже был добавлен ранее`);
+
+          return;
+        }
+
+        if (name.length && steamid.length > 8) {
+          await steamApi.addPlayer({ name, steamid });
+          await this.uploadPlayers();
+          await this.sendMessage(ctx, `Игрок ${name} добавлен`);
+        } else {
+          await this.sendMessage(ctx, `Некорректная команда. Необходимо ввести ник и steam id. Пример: /игрок Токсик 12345678910111213`);
+        }
+      }
+    } catch (err) {
+      await this.sendMessage(ctx, `Игрок не был добавлен. Возможно, команда была введена некорректно. Необходимо ввести ник и steam id. Пример: /игрок Токсик123 76561199567840801`);
+    }
+  };
+
+  async removePlayer(ctx: MessageContext) {
+    try {
+      const commandLength = commands.removePlayer.length;
+
+      if (ctx.text) {
+        const messageText = trimFirstCharacters(ctx.text, commandLength).split(' ');
+        const name = messageText[0];
+        const player = this.players.find(el => el.name === name);
+
+        if (player?.id) {
+          await steamApi.removePlayer(player.id);
+          await this.uploadPlayers();
+          await this.sendMessage(ctx, `Игрок ${name} удален`);
+        } else {
+          await this.sendMessage(ctx, `Игрок с ником ${name} не найден`);
+        }
+      }
+    } catch (err) {
+      await this.sendMessage(ctx, `Ошибка удаления`);
     }
   };
 

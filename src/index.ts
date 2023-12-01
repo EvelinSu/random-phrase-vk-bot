@@ -92,6 +92,10 @@ hearManager.hear(getHearRegExp(commands.addPlayer), async (ctx) => {
   await VkBot.addPlayer(ctx);
 });
 
+hearManager.hear(getHearRegExp(commands.removePlayer), async (ctx) => {
+  await VkBot.removePlayer(ctx);
+});
+
 hearManager.hear(commands.getOnlinePlayers, async (ctx) => {
   await VkBot.getOnlinePlayers(ctx);
 });
