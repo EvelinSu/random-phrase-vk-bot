@@ -304,8 +304,14 @@ export class VkBotController {
       }
     });
 
+    if (!this.chatIds.includes(ctx.chatId)) {
+      await this.sendMessage(ctx, `Для отслеживания онлайна введите ${commands.toggleSteamNotifications}`);
+      return;
+    }
+
     if (!onlinePlayers.length) {
       await this.sendMessage(ctx, 'Никого нет онлайн......');
+      return;
     }
 
     await this.sendMessage(ctx, `Сейчас в игре: ${onlinePlayers.join(', ')}`);

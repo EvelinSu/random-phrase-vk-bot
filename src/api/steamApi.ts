@@ -30,7 +30,7 @@ export const steamApi = {
 
     return steamPlayersInfoRes.map(async (steamPlayerInfo) => {
       const currentPlayer = players.find((player) => player.steamid === steamPlayerInfo.steamid) as PlayerType;
-      const isInTheGame = (steamPlayerInfo.gameid === process.env.STEAM_GAME_ID);
+      const isInTheGame = (steamPlayerInfo.gameid === process.env.STEAM_GAME_ID || steamPlayerInfo.gameextrainfo === process.env.STEAM_GAME_NAME);
       let actualPlayerInfo: PlayerType;
 
       if (isInTheGame && currentPlayer.isPlayNow && currentPlayer.isNotificationSent) {
