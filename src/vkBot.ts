@@ -36,11 +36,13 @@ export class VkBotController {
     }
   };
 
-  async sendMessage(context: MessageContext, message: string) {
+  async sendMessage(context: MessageContext, message: string, isReply?: boolean) {
     try {
       if (message && !this.timerId) {
         this.messagesCounter++;
-        await context.send(message);
+
+        if (!isReply) await context.send(message);
+        if (isReply) await context.reply(message);
 
         this.timerId = setTimeout(() => {
           this.timerId = undefined;
@@ -118,6 +120,7 @@ export class VkBotController {
   };
 
   async sendMessagePeriodically(context: MessageContext) {
+    console.log(this.messagesCounter, this.messagesToTrigger)
     if (this.messagesCounter < this.messagesToTrigger) {
       this.messagesCounter++;
     } else {
@@ -139,7 +142,7 @@ export class VkBotController {
   };
 
   async sendDailyRank(context: MessageContext, rank: string) {
-    await this.sendMessage(context, `Сегодня ты ${rank}`);
+    await this.sendMessage(context, `Сегодня ты ${rank}`, true);
   };
 
   async sendPrediction(context: MessageContext) {
@@ -147,7 +150,7 @@ export class VkBotController {
     const randomBoolean = Math.random() < 0.5;
 
     if (context.text && context.text.trim().length <= commandLength) {
-      await this.sendMessage(context, 'a?');
+      await this.sendMessage(context, 'a?', true);
       return;
     }
 
@@ -158,7 +161,7 @@ export class VkBotController {
     }
 
     const prediction = getRandomPrediction(this.predictions);
-    await this.sendMessage(context, prediction);
+    await this.sendMessage(context, prediction, true);
   };
 
   async uploadData() {
@@ -239,7 +242,7 @@ export class VkBotController {
       await this.sendMessage(ctx, 'Уведомления включены');
       this.steamIntervalId = setInterval(() => {
         this.checkPlayersStatus(ctx);
-      }, 30000);
+      }, 120000);
     } catch (err) {
       console.log(err);
     }
@@ -256,7 +259,7 @@ export class VkBotController {
         const isAlreadyExist = this.players.find(el => el.name === name);
 
         if (isAlreadyExist) {
-          await this.sendMessage(ctx, `Игрок ${name} уже был добавлен ранее`);
+          await this.sendMessage(ctx, `Игрок ${name} уже был добавлен ранее`, true);
 
           return;
         }
@@ -264,13 +267,13 @@ export class VkBotController {
         if (name.length && steamid.length > 8) {
           await steamApi.addPlayer({ name, steamid });
           await this.uploadPlayers();
-          await this.sendMessage(ctx, `Игрок ${name} добавлен`);
+          await this.sendMessage(ctx, `Игрок ${name} добавлен`, true);
         } else {
-          await this.sendMessage(ctx, `Некорректная команда. Необходимо ввести ник и steam id. Пример: /игрок Токсик 12345678910111213`);
+          await this.sendMessage(ctx, `Некорректная команда. Необходимо ввести ник и steam id. Пример: /игрок Токсик 12345678910111213`, true);
         }
       }
     } catch (err) {
-      await this.sendMessage(ctx, `Игрок не был добавлен. Возможно, команда была введена некорректно. Необходимо ввести ник и steam id. Пример: /игрок Токсик 12345678910111213`);
+      await this.sendMessage(ctx, `Игрок не был добавлен. Возможно, команда была введена некорректно. Необходимо ввести ник и steam id. Пример: /игрок Токсик 12345678910111213`, true);
     }
   };
 
@@ -286,13 +289,13 @@ export class VkBotController {
         if (player?.id) {
           await steamApi.removePlayer(player.id);
           await this.uploadPlayers();
-          await this.sendMessage(ctx, `Игрок ${name} удален`);
+          await this.sendMessage(ctx, `Игрок ${name} удален`, true);
         } else {
-          await this.sendMessage(ctx, `Игрок с ником ${name} не найден`);
+          await this.sendMessage(ctx, `Игрок с ником ${name} не найден`, true);
         }
       }
     } catch (err) {
-      await this.sendMessage(ctx, `Ошибка удаления`);
+      await this.sendMessage(ctx, `Ошибка удаления`, true);
     }
   };
 
@@ -305,7 +308,7 @@ export class VkBotController {
     });
 
     if (!this.chatIds.includes(ctx.chatId)) {
-      await this.sendMessage(ctx, `Для отслеживания онлайна введите ${commands.toggleSteamNotifications}`);
+      await this.sendMessage(ctx, `Для отслеживания онлайна введите ${commands.toggleSteamNotifications}`, true);
       return;
     }
 
@@ -315,5 +318,9 @@ export class VkBotController {
     }
 
     await this.sendMessage(ctx, `Сейчас в игре: ${onlinePlayers.join(', ')}`);
+  }
+
+  async enableBotEvents(ctx: MessageContext) {
+    await this.toggleSteamNotifications(ctx);
   }
 }

@@ -100,6 +100,10 @@ hearManager.hear(commands.getOnlinePlayers, async (ctx) => {
   await VkBot.getOnlinePlayers(ctx);
 });
 
+hearManager.hear(commands.enableBotEvents, async (ctx) => {
+  await VkBot.enableBotEvents(ctx);
+});
+
 (async () => {
   await vk.updates.start();
   vk.updates.on('message_new', hearManager.middleware);

@@ -7,6 +7,7 @@ export const commands = {
   getRandomSentence: '/вари',
   setMessagesToTrigger: '/частота',
   toggleSteamNotifications: '/уведомления',
+  enableBotEvents: '/старт',
   addPlayer: '/игрок',
   removePlayer: '/не игрок',
   getOnlinePlayers: '/онлайн',
@@ -17,6 +18,7 @@ export const commands = {
 }
 
 export const commandsText =
+  `${commands.enableBotEvents} - запускает ивенты бота` +
   `${commands.getPhrase} *слово для поиска* - поиск цитат \n\n` +
   `${commands.addPhrase} *текст цитаты* - добавить цитату в список \n\n` +
   `${commands.getRandomWords} *имя* - сгенерировать титул \n\n` +
