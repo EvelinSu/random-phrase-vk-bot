@@ -1,4 +1,8 @@
 {
+  "welcome-message": {
+    "text": "Привет!"
+  },
+  "active-chats": [],
   "steam-players": [
     {
       "id": "1",
@@ -49,4 +53,4 @@
     "Нет",
     "Попробуй еще раз"
   ]
-}
+},

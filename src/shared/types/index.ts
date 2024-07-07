@@ -1,3 +1,5 @@
+import { MessageContext } from "vk-io";
+
 export type PhraseType = {
     id: string | number,
     text: string
@@ -31,6 +33,9 @@ export type PlayerType = {
     isNotificationSent?: boolean,
 }
 
-export type ChatType = {
-    id: string,
+export type ActiveChatType = {
+    id?: string,
+    context: MessageContext,
+    notificationsEnabled: boolean,
+    welcome: string,
 }

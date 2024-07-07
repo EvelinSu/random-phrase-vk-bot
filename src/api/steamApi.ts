@@ -24,28 +24,32 @@ export const steamApi = {
     return res.data;
   },
   checkPlayersStatus: async (steamIds: SteamUserInfoType['steamid'][], players: PlayerType[]) => {
-    const ids = steamIds.join(',');
-    const steamPlayersInfo: AxiosResponse<{ response: { players: SteamUserInfoType[] } }> = await api.get(`/?key=${process.env.STEAM_API_KEY}&steamids=${ids}`);
-    const steamPlayersInfoRes = steamPlayersInfo.data.response.players;
+    try {
+      const ids = steamIds.join(',');
+      const steamPlayersInfo: AxiosResponse<{ response: { players: SteamUserInfoType[] } }> = await api.get(`/?key=${process.env.STEAM_API_KEY}&steamids=${ids}`);
+      const steamPlayersInfoRes = steamPlayersInfo.data.response.players;
 
-    return steamPlayersInfoRes.map(async (steamPlayerInfo) => {
-      const currentPlayer = players.find((player) => player.steamid === steamPlayerInfo.steamid) as PlayerType;
-      const isInTheGame = (steamPlayerInfo.gameid === process.env.STEAM_GAME_ID || steamPlayerInfo.gameextrainfo === process.env.STEAM_GAME_NAME);
-      let actualPlayerInfo: PlayerType;
+      return steamPlayersInfoRes.map(async (steamPlayerInfo) => {
+        const currentPlayer = players.find((player) => player.steamid === steamPlayerInfo.steamid) as PlayerType;
+        const isInTheGame = (steamPlayerInfo.gameid === process.env.STEAM_GAME_ID || steamPlayerInfo.gameextrainfo === process.env.STEAM_GAME_NAME);
+        let actualPlayerInfo: PlayerType;
 
-      if (isInTheGame && currentPlayer.isPlayNow && currentPlayer.isNotificationSent) {
-        return currentPlayer;
-      }
+        if (isInTheGame && currentPlayer.isPlayNow && currentPlayer.isNotificationSent) {
+          return currentPlayer;
+        }
 
-      if (isInTheGame && !currentPlayer?.isPlayNow) {
-        actualPlayerInfo = { ...currentPlayer, isPlayNow: true, isNotificationSent: false };
-      } else if (!isInTheGame && currentPlayer.isPlayNow) {
-        actualPlayerInfo = { ...currentPlayer, isPlayNow: false, isNotificationSent: false };
-      } else {
-        actualPlayerInfo = { ...currentPlayer, isPlayNow: false, isNotificationSent: true };
-      }
+        if (isInTheGame && !currentPlayer?.isPlayNow) {
+          actualPlayerInfo = { ...currentPlayer, isPlayNow: true, isNotificationSent: false };
+        } else if (!isInTheGame && currentPlayer.isPlayNow) {
+          actualPlayerInfo = { ...currentPlayer, isPlayNow: false, isNotificationSent: false };
+        } else {
+          actualPlayerInfo = { ...currentPlayer, isPlayNow: false, isNotificationSent: true };
+        }
 
-      return actualPlayerInfo;
-    });
-  },
+        return actualPlayerInfo;
+      });
+    } catch (err){
+      console.log(err)
+    }
+  }
 };

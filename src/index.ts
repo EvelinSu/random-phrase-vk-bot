@@ -1,27 +1,61 @@
-import { HearManager } from '@vk-io/hear';
-import { MessageContext, VK } from 'vk-io';
-import { commands, commandsText } from './shared/constants/commands';
-import { textContent } from './shared/constants/textContent';
-import { getHearRegExp } from './shared/utils';
-import { VkBotController } from './vkBot';
+import { HearManager } from "@vk-io/hear";
+import { MessageContext, VK } from "vk-io";
 
-require('dotenv').config();
+import { SessionManager } from "@vk-io/session";
+import { commands, commandsText } from "./shared/constants/commands";
+import { textContent } from "./shared/constants/textContent";
+import { getHearRegExp } from "./shared/utils";
+import { VkBotController } from "./vkBot";
+
+require("dotenv").config();
 
 const token = process.env.VK_API_KEY as string;
 const vk = new VK({ token });
+const sessionManager = new SessionManager<MessageContext>({
+  getStorageKey: (context) => String(context.peerId),
+});
+
 const hearManager = new HearManager<MessageContext>();
+
 const VkBot = new VkBotController();
 
-hearManager.hear(commands.getCommands, async (ctx) => {
-  await VkBot.sendMessage(ctx, commandsText);
+vk.updates.on("chat_invite_user", async (context) => {
+  try {
+    await VkBot.welcome(context);
+    console.log(context)
+  } catch (err) {
+    console.log(err);
+  }
 });
 
-hearManager.hear(commands.getRandomSentence, async (ctx) => {
-  await VkBot.sendGeneratedRandomSentence(ctx);
+vk.updates.on("message_new", async (ctx, next) => {
+  const text = ctx.text;
+
+  VkBot.sendMessagePeriodically(ctx);
+
+  switch (text) {
+    case commands.start:
+      return await VkBot.sendMessage(ctx, commandsText);
+    case commands.getCommands:
+      return await VkBot.sendMessage(ctx, commandsText);
+    case commands.getRandomSentence:
+      return await VkBot.sendGeneratedRandomSentence(ctx);
+    case commands.getTodayRank:
+      return await VkBot.generateDailyPersonalRank(ctx);
+    case commands.getOnlinePlayers:
+      return await VkBot.getOnlinePlayers(ctx);
+    case commands.enableBotEvents:
+      return await VkBot.enableBotEvents(ctx);
+    case commands.toggleSteamNotifications:
+      return await VkBot.toggleSteamNotifications(ctx);
+    default:
+      return next();
+  }
 });
 
-hearManager.hear(commands.getTodayRank, async (ctx) => {
-  await VkBot.generateDailyPersonalRank(ctx);
+
+hearManager.hear(getHearRegExp(commands.setWelcome), async (ctx) => {
+  await VkBot.changeWelcome(ctx);
 });
 
 hearManager.hear(getHearRegExp(commands.getPrediction), async (ctx) => {
@@ -57,7 +91,6 @@ hearManager.hear(getHearRegExp(commands.getRandomWords), async (ctx: MessageCont
     await VkBot.sendMessage(ctx, textContent.commonErrorMessage);
   }
 });
-
 
 hearManager.hear(getHearRegExp(commands.getApologize), async (ctx) => {
   const ownerId = Number(process.env.OWNER_VK_ID);
@@ -105,9 +138,11 @@ hearManager.hear(commands.enableBotEvents, async (ctx) => {
 });
 
 (async () => {
+  vk.updates.on("message_new", sessionManager.middleware);
+  vk.updates.on("message_new", hearManager.middleware);
   await vk.updates.start();
-  vk.updates.on('message_new', hearManager.middleware);
   await VkBot.uploadPhrases();
   await VkBot.uploadData();
-  console.log('Бот запущен и готов к работе!');
+  await VkBot.uploadActiveChatInfos();
+  console.log("Бот запущен и готов к работе!");
 })();
