@@ -17,7 +17,7 @@ const sessionManager = new SessionManager<MessageContext>({
 
 const hearManager = new HearManager<MessageContext>();
 
-const VkBot = new VkBotController();
+const VkBot = new VkBotController(vk);
 
 vk.updates.on("chat_invite_user", async (context) => {
   try {

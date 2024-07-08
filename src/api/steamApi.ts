@@ -23,17 +23,16 @@ export const steamApi = {
     const res: AxiosResponse<PlayerType> = await jsonApi.put(`/steam-players/${arg.id}`, arg);
     return res.data;
   },
-  checkPlayersStatus: async (steamIds: SteamUserInfoType['steamid'][], players: PlayerType[]) => {
-    try {
-      const ids = steamIds.join(',');
+  checkPlayersStatus: async (players: PlayerType[]) => {
+      const ids = players.map((player) => player.steamid).join(',');
       const steamPlayersInfo: AxiosResponse<{ response: { players: SteamUserInfoType[] } }> = await api.get(`/?key=${process.env.STEAM_API_KEY}&steamids=${ids}`);
       const steamPlayersInfoRes = steamPlayersInfo.data.response.players;
 
       return steamPlayersInfoRes.map(async (steamPlayerInfo) => {
         const currentPlayer = players.find((player) => player.steamid === steamPlayerInfo.steamid) as PlayerType;
-        const isInTheGame = (steamPlayerInfo.gameid === process.env.STEAM_GAME_ID || steamPlayerInfo.gameextrainfo === process.env.STEAM_GAME_NAME);
-        let actualPlayerInfo: PlayerType;
+        const isInTheGame = steamPlayerInfo.gameid === process.env.STEAM_GAME_ID;
 
+        let actualPlayerInfo: PlayerType;
         if (isInTheGame && currentPlayer.isPlayNow && currentPlayer.isNotificationSent) {
           return currentPlayer;
         }
@@ -48,8 +47,5 @@ export const steamApi = {
 
         return actualPlayerInfo;
       });
-    } catch (err){
-      console.log(err)
-    }
-  }
+  },
 };

@@ -1,7 +1,7 @@
-import { MemoryStorage } from "@vk-io/session";
 import * as dayjs from "dayjs";
 import { clearInterval } from "timers";
-import { MessageContext } from "vk-io";
+import { MessageContext, VK } from "vk-io";
+import { MessagesSendParams } from "vk-io/lib/api/schemas/params";
 import { coreApi } from "./api/coreApi";
 import { steamApi } from "./api/steamApi";
 import { commands } from "./shared/constants/commands";
@@ -19,6 +19,7 @@ import { getRandomPrediction } from "./shared/utils/getRandomPrediction";
 
 
 export class VkBotController {
+  send: (params: MessagesSendParams) => Promise<number>;
   messagesToTrigger: number = 100;
   phrasesList: PhraseType[] = [];
   messagesCounter: number = 0;
@@ -30,6 +31,10 @@ export class VkBotController {
   dailyPersonalRank: DailyPersonalRankType[] = [];
   steamIntervalId: NodeJS.Timeout | undefined;
   timerId: NodeJS.Timeout | undefined;
+
+  constructor(vk: VK) {
+    this.send = vk.api.messages.send;
+  }
 
   async welcome(ctx: MessageContext) {
     try {
@@ -217,6 +222,11 @@ export class VkBotController {
       this.players = await steamApi.getPlayers();
       this.predictions = await coreApi.getPredictions();
       this.dailyPersonalRank = await coreApi.getDailyPersonalRank();
+
+      this.steamIntervalId = setInterval(() => {
+        this.checkActualPlayersStatus();
+      }, 120000);
+
     } catch (err) {
       console.log("Ошибка загрузки данных", err);
     }
@@ -256,10 +266,9 @@ export class VkBotController {
     await this.uploadData();
   };
 
-  async checkPlayersStatus(ctx: MessageContext) {
+  async checkActualPlayersStatus() {
     try {
-      const playersId = this.players.map((player) => player.steamid);
-      const actualPlayersStatus = await steamApi.checkPlayersStatus(playersId, this.players);
+      const actualPlayersStatus = await steamApi.checkPlayersStatus(this.players);
 
       if (!actualPlayersStatus) {
         return;
@@ -272,8 +281,9 @@ export class VkBotController {
           await steamApi.putPlayer({ ...player, isNotificationSent: true });
 
           this.activeChatInfos.forEach((el) => {
+            console.log(el)
             if (el.notificationsEnabled) {
-              this.sendMessage(el.context, getPlayerOnlineText(player));
+              this.send({ message: getPlayerOnlineText(player), random_id: Math.random(), peer_id: el.context.peerId });
             }
           });
         }
@@ -286,7 +296,11 @@ export class VkBotController {
 
   async saveChatInfo(context: MessageContext) {
     try {
-      await coreApi.addChatInfo({ context: context, notificationsEnabled: true, welcome: "Привет! Ой, то есть... Гав!" });
+      await coreApi.addChatInfo({
+        context: context,
+        notificationsEnabled: true,
+        welcome: "Привет! Ой, то есть... Гав!",
+      });
       await this.uploadActiveChatInfos();
       await this.sendMessage(context, "Бот работает во всю мощь");
     } catch (err) {
@@ -310,10 +324,6 @@ export class VkBotController {
         await coreApi.setChatInfoById({ ...currentChatInfo, notificationsEnabled: true });
         await this.uploadActiveChatInfos();
         await this.sendMessage(ctx, "Уведомления включены");
-
-        this.steamIntervalId = setInterval(() => {
-          this.checkPlayersStatus(ctx);
-        }, 120000);
       }
 
     } catch (err) {
