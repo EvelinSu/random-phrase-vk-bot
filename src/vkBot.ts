@@ -1,5 +1,4 @@
-import * as dayjs from "dayjs";
-import { clearInterval } from "timers";
+import dayjs from "dayjs";
 import { MessageContext, VK } from "vk-io";
 import { MessagesSendParams } from "vk-io/lib/api/schemas/params";
 import { coreApi } from "./api/coreApi";
@@ -29,7 +28,6 @@ export class VkBotController {
   adjectives: string[] = [];
   players: PlayerType[] = [];
   dailyPersonalRank: DailyPersonalRankType[] = [];
-  steamIntervalId: NodeJS.Timeout | undefined;
   timerId: NodeJS.Timeout | undefined;
 
   constructor(vk: VK) {
@@ -41,7 +39,7 @@ export class VkBotController {
       const currentChat = this.getCurrentChatInfo(ctx.peerId);
 
       if (currentChat) {
-        await this.sendMessage(ctx, currentChat?.welcome);
+        await this.sendMessage(ctx, currentChat.welcome);
       }
     } catch (err) {
       console.log(err);
@@ -223,8 +221,8 @@ export class VkBotController {
       this.predictions = await coreApi.getPredictions();
       this.dailyPersonalRank = await coreApi.getDailyPersonalRank();
 
-      this.steamIntervalId = setInterval(() => {
-        this.checkActualPlayersStatus();
+      setInterval(async () => {
+        await this.checkActualPlayersStatus();
       }, 120000);
 
     } catch (err) {
@@ -246,9 +244,9 @@ export class VkBotController {
     const currentUser = this.dailyPersonalRank.find((el) => el.userId === userId);
     const rank = getFunWords(this.nouns, this.adjectives);
 
-    if (currentUser && currentUser.day === today) {
+    if (currentUser && currentUser.day === today && currentUser) {
       // если юзер с рангом найден и у него уже есть звание на сегодня
-      await this.sendDailyRank(context, currentUser?.words);
+      await this.sendDailyRank(context, currentUser.words);
     }
 
     if (currentUser && currentUser.day !== today) {
@@ -274,18 +272,17 @@ export class VkBotController {
         return;
       }
 
-      for (let i = 0; i < actualPlayersStatus.length; i++) {
-        const player = await actualPlayersStatus[i];
+      for (const chat of this.activeChatInfos) {
+        if (!chat.notificationsEnabled) {
+          return;
+        }
 
-        if (player && !player?.isNotificationSent) {
-          await steamApi.putPlayer({ ...player, isNotificationSent: true });
-
-          this.activeChatInfos.forEach((el) => {
-            console.log(el)
-            if (el.notificationsEnabled) {
-              this.send({ message: getPlayerOnlineText(player), random_id: Math.random(), peer_id: el.context.peerId });
-            }
-          });
+        for (let i = 0; i < actualPlayersStatus.length; i++) {
+          const playerInfo = actualPlayersStatus[i];
+          if (playerInfo && !playerInfo?.isNotificationSent) {
+            await steamApi.putPlayer({ ...playerInfo, isNotificationSent: true });
+            await this.send({ message: getPlayerOnlineText(playerInfo), random_id: Math.random(), peer_id: chat.context.peerId });
+          }
         }
       }
       await this.uploadPlayers();
@@ -296,13 +293,17 @@ export class VkBotController {
 
   async saveChatInfo(context: MessageContext) {
     try {
-      await coreApi.addChatInfo({
+      const chatInfo: ActiveChatType = {
         context: context,
         notificationsEnabled: true,
         welcome: "Привет! Ой, то есть... Гав!",
-      });
+      };
+
+      await this.sendMessage(context, "Уведомления включены");
+      await coreApi.addChatInfo(chatInfo);
       await this.uploadActiveChatInfos();
-      await this.sendMessage(context, "Бот работает во всю мощь");
+
+      return chatInfo;
     } catch (err) {
       console.log(err);
     }
@@ -310,12 +311,15 @@ export class VkBotController {
 
   async toggleSteamNotifications(ctx: MessageContext) {
     try {
-      const currentChatInfo = this.getCurrentChatInfo(ctx?.peerId);
+      let currentChatInfo = this.getCurrentChatInfo(ctx?.peerId);
+
+      if (!currentChatInfo) {
+        currentChatInfo = await this.saveChatInfo(ctx);
+      }
 
       if (currentChatInfo?.notificationsEnabled) {
         await coreApi.setChatInfoById({ ...currentChatInfo, notificationsEnabled: false });
         await this.uploadActiveChatInfos();
-        clearInterval(this.steamIntervalId);
         await this.sendMessage(ctx, "Уведомления отключены");
         return;
       }
@@ -400,15 +404,5 @@ export class VkBotController {
     }
 
     await this.sendMessage(ctx, `Сейчас в игре: ${onlinePlayers.join(", ")}`);
-  }
-
-  async enableBotEvents(ctx: MessageContext) {
-    const currentChatInfo = this.getCurrentChatInfo(ctx.peerId);
-
-    if (!currentChatInfo) {
-      await this.saveChatInfo(ctx);
-    }
-
-    await this.toggleSteamNotifications(ctx);
   }
 }

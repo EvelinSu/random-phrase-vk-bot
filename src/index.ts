@@ -19,10 +19,17 @@ const hearManager = new HearManager<MessageContext>();
 
 const VkBot = new VkBotController(vk);
 
+vk.updates.on("chat_invite_user_by_link", async (context) => {
+  try {
+    await VkBot.welcome(context);
+  } catch (err) {
+    console.log(err);
+  }
+});
+
 vk.updates.on("chat_invite_user", async (context) => {
   try {
     await VkBot.welcome(context);
-    console.log(context)
   } catch (err) {
     console.log(err);
   }
@@ -32,6 +39,7 @@ vk.updates.on("message_new", async (ctx, next) => {
   const text = ctx.text;
 
   VkBot.sendMessagePeriodically(ctx);
+  console.log(ctx.text)
 
   switch (text) {
     case commands.start:
@@ -44,8 +52,6 @@ vk.updates.on("message_new", async (ctx, next) => {
       return await VkBot.generateDailyPersonalRank(ctx);
     case commands.getOnlinePlayers:
       return await VkBot.getOnlinePlayers(ctx);
-    case commands.enableBotEvents:
-      return await VkBot.enableBotEvents(ctx);
     case commands.toggleSteamNotifications:
       return await VkBot.toggleSteamNotifications(ctx);
     default:
@@ -133,9 +139,6 @@ hearManager.hear(commands.getOnlinePlayers, async (ctx) => {
   await VkBot.getOnlinePlayers(ctx);
 });
 
-hearManager.hear(commands.enableBotEvents, async (ctx) => {
-  await VkBot.enableBotEvents(ctx);
-});
 
 (async () => {
   vk.updates.on("message_new", sessionManager.middleware);

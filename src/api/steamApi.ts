@@ -28,7 +28,7 @@ export const steamApi = {
       const steamPlayersInfo: AxiosResponse<{ response: { players: SteamUserInfoType[] } }> = await api.get(`/?key=${process.env.STEAM_API_KEY}&steamids=${ids}`);
       const steamPlayersInfoRes = steamPlayersInfo.data.response.players;
 
-      return steamPlayersInfoRes.map(async (steamPlayerInfo) => {
+      return steamPlayersInfoRes.map((steamPlayerInfo) => {
         const currentPlayer = players.find((player) => player.steamid === steamPlayerInfo.steamid) as PlayerType;
         const isInTheGame = steamPlayerInfo.gameid === process.env.STEAM_GAME_ID;
 

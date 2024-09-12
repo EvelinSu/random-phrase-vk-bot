@@ -8,7 +8,6 @@ export const commands = {
   getRandomSentence: '/вари',
   setMessagesToTrigger: '/частота',
   toggleSteamNotifications: '/уведомления',
-  enableBotEvents: '/старт',
   addPlayer: '/игрок',
   removePlayer: '/не игрок',
   getOnlinePlayers: '/онлайн',
@@ -22,7 +21,6 @@ export const commands = {
 export const commandsText =
   `Я бот для шайки палочников. Умею делать разные вещи: \n\n` +
   `${commands.setWelcome} *текст сообщения* - изменить приветственное сообщение \n\n` +
-  `${commands.enableBotEvents} - запуск \n\n` +
   `${commands.getPhrase} *слово для поиска* - поиск цитат \n\n` +
   `${commands.addPhrase} *текст цитаты* - добавить цитату в список \n\n` +
   `${commands.getRandomWords} *имя* - сгенерировать титул \n\n` +
