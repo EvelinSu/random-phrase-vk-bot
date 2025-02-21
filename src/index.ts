@@ -9,7 +9,7 @@ import { VkBotController } from "./vkBot";
 
 require("dotenv").config();
 
-const token = process.env.VK_API_KEY as string;
+const token = process.env.K_API_KEY as string;
 const vk = new VK({ token });
 const sessionManager = new SessionManager<MessageContext>({
   getStorageKey: (context) => String(context.peerId),
@@ -39,7 +39,6 @@ vk.updates.on("message_new", async (ctx, next) => {
   const text = ctx.text;
 
   VkBot.sendMessagePeriodically(ctx);
-  console.log(ctx.text)
 
   switch (text) {
     case commands.start:
@@ -137,6 +136,14 @@ hearManager.hear(getHearRegExp(commands.removePlayer), async (ctx) => {
 
 hearManager.hear(commands.getOnlinePlayers, async (ctx) => {
   await VkBot.getOnlinePlayers(ctx);
+});
+
+hearManager.hear(getHearRegExp(commands.getBlackList), async (ctx) => {
+  await VkBot.getBlacklist(ctx);
+});
+
+hearManager.hear(getHearRegExp(commands.addBlackList), async (ctx) => {
+  await VkBot.addBlacklist(ctx);
 });
 
 

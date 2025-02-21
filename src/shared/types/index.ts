@@ -5,6 +5,11 @@ export type PhraseType = {
     text: string
 }
 
+export type BlackList = {
+    id: string | number,
+    text: string
+}
+
 export type DailyPersonalRankType = {
     userId: number,
     day: string,

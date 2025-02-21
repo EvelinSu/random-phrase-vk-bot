@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { v1 } from "uuid";
-import { ActiveChatType, DailyPersonalRankType, PhraseType, YesNoResponseType } from "../shared/types";
+import { ActiveChatType, BlackList, DailyPersonalRankType, PhraseType, YesNoResponseType } from "../shared/types";
 
 export const jsonApi = axios.create({
   baseURL: "http://localhost:3000/",
@@ -32,6 +32,14 @@ export const coreApi = {
   },
   addPhrase: async (text: string) => {
     const res = await jsonApi.post("phrases", { id: v1(), text });
+    return res.data;
+  },
+  getBlackList: async () => {
+    const res: AxiosResponse<BlackList[]> = await jsonApi.get("blackList");
+    return res.data.map(el => el.text);
+  },
+  addBlackListItem: async (text: string) => {
+    const res = await jsonApi.post("blackList", { id: v1(), text });
     return res.data;
   },
   getNouns: async () => {
